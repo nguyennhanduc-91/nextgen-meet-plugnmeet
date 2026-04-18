@@ -18,9 +18,14 @@ services:
     image: mynaparrot/plugnmeet-server:v2.1.6
     depends_on:
       - mariadb
-    # ĐÃ XÓA VOLUMES VÀ DÙNG BASH ĐỂ TỰ ĐỘNG SINH FILE CẤU HÌNH BÊN TRONG 
+    # GIÀNH QUYỀN KIỂM SOÁT TỐI CAO: Bỏ qua entrypoint lỗi của hãng
+    entrypoint: /bin/sh
     command: >
-      /bin/sh -c "cat <<'EOF' > /app/config.yaml
+      -c "
+      echo '1. Xoa thu muc rác config.yaml neu co...' &&
+      rm -rf config.yaml || true &&
+      echo '2. Tao file config.yaml chuan xac...' &&
+      cat <<'EOF' > config.yaml
       livekit_info:
         host: \"wss://livekit.thanhnguyen.group\"
         api_key: \"API_nextgen_admin_key\"
@@ -37,7 +42,13 @@ services:
         auth_header_token: \"TN_Admin_Key_2026\"
         secret: \"TN_Secret_Key_Super_Secure_2026\"
       EOF
-      ./plugnmeet-server"
+      echo '3. Khoi dong Server...' &&
+      if [ -f ./plugnmeet-server ]; then
+        exec ./plugnmeet-server
+      else
+        exec plugnmeet-server
+      fi
+      "
     expose:
       - "8080"
     restart: unless-stopped
