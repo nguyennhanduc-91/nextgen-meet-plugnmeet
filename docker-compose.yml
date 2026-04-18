@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. DATABASE LƯU TRỮ
+  mariadb:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: tn_root_secure_password_2026
+      MYSQL_DATABASE: plugnmeet
+      MYSQL_USER: tn_plugnmeet_user
+      MYSQL_PASSWORD: tn_db_password_2026
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    restart: unless-stopped
+
+  # 2. LÕI XỬ LÝ LOGIC (PLUGNMEET SERVER)
+  plugnmeet-server:
+    image: mynaparrot/plugnmeet-server:latest
+    depends_on:
+      - mariadb
+    volumes:
+      - ./config.yaml:/app/config.yaml # Nạp file cấu hình backend
+    ports:
+      - "8080:8080" # Cổng API
+    restart: unless-stopped
+
+  # 3. GIAO DIỆN NGƯỜI DÙNG (PLUGNMEET CLIENT)
+  plugnmeet-client:
+    image: mynaparrot/plugnmeet-client:latest
+    environment:
+      - PLUGNMEET_SERVER_URL=https://api-meet.thanhnguyen.group
+    volumes:
+      - ./config.json:/usr/share/nginx/html/assets/config.json # Nạp file thương hiệu hóa UI
+    # Chạy script tải logo của Thanh Nguyen Group đè lên logo mặc định của hãng trước khi bật web
+    command: >
+      /bin/sh -c "wget -qO /usr/share/nginx/html/assets/logo.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' &&
+      wget -qO /usr/share/nginx/html/assets/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' &&
+      nginx -g 'daemon off;'"
+    ports:
+      - "80:80" # Cổng Giao diện web
+    restart: unless-stopped
+
+volumes:
+  mariadb-data:
