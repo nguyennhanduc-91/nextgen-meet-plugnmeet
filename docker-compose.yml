@@ -15,7 +15,7 @@ services:
 
   # 2. LÕI XỬ LÝ LOGIC (PLUGNMEET SERVER)
   plugnmeet-server:
-    # ĐÃ CẬP NHẬT: Lên thẳng phiên bản mới nhất v2.1.6
+    # ĐÃ FIX: Server dùng bản v2.1.6
     image: mynaparrot/plugnmeet-server:v2.1.6
     depends_on:
       - mariadb
@@ -27,13 +27,13 @@ services:
 
   # 3. GIAO DIỆN NGƯỜI DÙNG (PLUGNMEET CLIENT)
   plugnmeet-client:
-    # ĐÃ CẬP NHẬT: Lên thẳng phiên bản mới nhất v2.1.6
-    image: mynaparrot/plugnmeet-client:v2.1.6
+    # ĐÃ FIX: Client dùng bản v2.1.7 mới nhất
+    image: mynaparrot/plugnmeet-client:v2.1.7
     environment:
       - PLUGNMEET_SERVER_URL=https://api-meet.thanhnguyen.group
     volumes:
       - ./config.json:/usr/share/nginx/html/assets/config.json
-    # ĐÃ TỐI ƯU: Thêm || true để không bị văng Container nếu tải ảnh bị chậm
+    # ĐÃ TỐI ƯU: Tự động chèn Logo của Thanh Nguyen Group
     command: >
       /bin/sh -c "wget -qO /usr/share/nginx/html/assets/logo.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
       wget -qO /usr/share/nginx/html/assets/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
