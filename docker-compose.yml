@@ -1,6 +1,31 @@
 version: '3.8'
 
 services:
+  # 1. CONTAINER KHỞI TẠO (INIT): Tự động tải file config và frontend rồi tự tắt
+  setup-files:
+    image: alpine:latest
+    volumes:
+      - pnm-configs:/shared_configs
+      - pnm-frontend:/shared_frontend
+    command: >
+      /bin/sh -c "
+      echo 'Đang cài đặt công cụ...' &&
+      apk add --no-cache wget unzip &&
+
+      echo 'Đang tải file cấu hình từ Github...' &&
+      wget -qO /shared_configs/config.yaml https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-plugnmeet/main/config.yaml &&
+      wget -qO /shared_configs/nats-server.conf https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-plugnmeet/main/nats-server.conf &&
+
+      echo 'Đang tải Frontend PlugNmeet...' &&
+      wget -qO /tmp/client.zip https://github.com/mynaparrot/plugNmeet-client/releases/download/v2.1.7/plugnmeet-client.zip &&
+      unzip -o /tmp/client.zip -d /shared_frontend &&
+      
+      echo 'Tạo thư mục CSS ảo để Backend không báo lỗi...' &&
+      mkdir -p /shared_frontend/assets/css &&
+      
+      echo 'Hoàn tất khởi tạo!'
+      "
+
   mariadb:
     image: mariadb:10.11
     environment:
@@ -14,15 +39,14 @@ services:
 
   nats:
     image: nats:2.12-alpine
-    command:
-      - "-DVV"
-      - "-config"
-      - "/app/nats-server.conf" # Gọi file cấu hình từ shared volume
+    depends_on:
+      setup-files:
+        condition: service_completed_successfully
+    command: ["-DVV", "-config", "/etc/nats/nats-server.conf"]
     ports:
       - "4222:4222"
     volumes:
-      # Chúng ta sẽ mount thư mục app từ plugnmeet-server sang nats
-      - shared-app-vol:/app
+      - pnm-configs:/etc/nats
       - nats-data:/data/jetstream
     restart: unless-stopped
 
@@ -31,16 +55,18 @@ services:
     restart: unless-stopped
 
   plugnmeet-server:
-    # BÍ QUYẾT: Yêu cầu Coolify build image từ Dockerfile ở thư mục hiện tại
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: mynaparrot/plugnmeet-server:v2.1.6
     depends_on:
-      - mariadb
+      setup-files:
+        condition: service_completed_successfully
+      mariadb:
+        condition: service_started
     volumes:
-      # Copy toàn bộ nội dung /app ra volume dùng chung
-      - shared-app-vol:/app
+      # Lấy config và frontend từ container khởi tạo
+      - pnm-configs:/app/configs
+      - pnm-frontend:/app/client/dist
       - plugnmeet-upload:/app/upload
+    command: ["plugnmeet-server", "-config", "/app/configs/config.yaml"]
     environment:
       - LD_LIBRARY_PATH=/app/lib
     expose:
@@ -50,16 +76,26 @@ services:
   plugnmeet-client:
     image: nginx:alpine
     depends_on:
-      - plugnmeet-server
-      - nats
+      setup-files:
+        condition: service_completed_successfully
     volumes:
-      # Đọc code frontend trực tiếp từ Volume do plugnmeet-server chia sẻ
-      - shared-app-vol:/app
+      # Lấy frontend từ container khởi tạo
+      - pnm-frontend:/usr/share/nginx/html
     command: >
       /bin/sh -c "
+      echo 'Cập nhật URL API cho Frontend...' &&
+      echo 'window.PLUGNMEET_SERVER_URL = \"https://api-meet.thanhnguyen.group\";' > /usr/share/nginx/html/config.js &&
+      echo 'window.PLUGNMEET_SERVER_URL = \"https://api-meet.thanhnguyen.group\";' > /usr/share/nginx/html/assets/config.js &&
+      
+      echo 'Tải Logo tùy chỉnh...' &&
+      wget -qO /usr/share/nginx/html/assets/imgs/main-logo-dark.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
+      wget -qO /usr/share/nginx/html/assets/imgs/main-logo-light.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
+      wget -qO /usr/share/nginx/html/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
+
+      echo 'Cấu hình Nginx...' &&
       echo 'server { 
         listen 80; 
-        root /app/client/dist; 
+        root /usr/share/nginx/html; 
         index index.html; 
         location / { 
           try_files \$$uri /index.html; 
@@ -72,6 +108,8 @@ services:
           proxy_set_header Host \$$host;
         }
       }' > /etc/nginx/conf.d/default.conf &&
+      
+      echo 'Khởi động Nginx...' &&
       nginx -g 'daemon off;'
       "
     expose:
@@ -82,5 +120,5 @@ volumes:
   mariadb-data:
   nats-data:
   plugnmeet-upload:
-  # Volume dùng chung để plugnmeet-server chia sẻ file config và frontend cho NATS và Nginx
-  shared-app-vol:
+  pnm-configs:
+  pnm-frontend:
