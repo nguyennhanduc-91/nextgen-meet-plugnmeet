@@ -17,11 +17,11 @@ services:
     command:
       - "-DVV"
       - "-config"
-      - "/my-configs/nats-server.conf" # Gọi file từ thư mục tổng
+      - "/app/nats-server.conf" # Trỏ thẳng vào thư mục app mà ta sẽ mount
     ports:
       - "4222:4222"
     volumes:
-      - ./:/my-configs:ro # Mount TOÀN BỘ thư mục code dưới dạng Read-Only
+      - ./:/app:ro # Mount TOÀN BỘ thư mục root của Github vào thư mục /app (read-only)
       - nats-data:/data/jetstream
     restart: unless-stopped
 
@@ -35,9 +35,9 @@ services:
       - mariadb
       - nats
     volumes:
-      - ./:/my-configs:ro # Mount TOÀN BỘ thư mục code dưới dạng Read-Only
+      - ./:/app_configs:ro # Mount TOÀN BỘ thư mục root của Github vào thư mục /app_configs
       - plugnmeet-upload:/app/upload
-    command: ["plugnmeet-server", "-config", "/my-configs/config.yaml"] # Gọi file từ thư mục tổng
+    command: ["plugnmeet-server", "-config", "/app_configs/config.yaml"]
     environment:
       - LD_LIBRARY_PATH=/app/lib
     expose:
