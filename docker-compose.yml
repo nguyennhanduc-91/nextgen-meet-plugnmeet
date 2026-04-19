@@ -57,8 +57,8 @@ services:
         EOF
         exec nats-server -config /etc/nats/nats-server.conf
     volumes:
-      # FIX LỖI OVERLAP: Đổi tên volume để xóa sạch dữ liệu cũ bị kẹt
-      - nats-data-final:/data/jetstream
+      # ÉP LÀM MỚI DỮ LIỆU ĐỂ HẾT LỖI OVERLAP
+      - nats_data_final_v4:/data/jetstream
     restart: unless-stopped
 
   # ==========================================
@@ -115,10 +115,12 @@ services:
           auth_callout_issuer_private: "SAAMTMBUANSRW3XDXZBIBF4JYRRUMWGV2GZT5MQ54VNWNRPN2Y4J46NQSA"
           auth_callout_xkey_private: "SXAMBYY64TKXZCLFQGWDATGPIPURA4SIV3GDCSGG7A74USK6XDO6WQTIUU"
           num_replicas: 1
-          # FIX TRIỆT ĐỂ LỖI NATS: Dùng tên cực ngắn, không ký tự đặc biệt
-          room_stream_name: "pnmstream"
-          project_info_kv_name: "pnmproj"
-          recorder_info_kv_name: "pnmrec"
+          # DÙNG TÊN MỚI HOÀN TOÀN
+          room_stream_name: "pnmrooms"
+          project_info:
+            kv_name: "pnmprojects"
+          recorder_info:
+            kv_name: "pnmrecorders"
           subjects:
             system_api_worker: "sysApiWorker"
             system_js_worker: "sysJsWorker"
@@ -136,20 +138,13 @@ services:
           allowed_types: ["jpg","png","jpeg","svg","pdf","docx","txt","xlsx","pptx","zip","mp4","webm","mp3"]
         shared_notepad:
           enabled: false
-        recorder_info:
-          recording_files_path: "/app/upload"
-          custom_logo: ""
         EOF
         
         echo "2. Doi MariaDB va NATS khoi tao an toan..."
         sleep 10
-        
-        echo "3. Dang cho Nginx tai va giai nen xong CSS..."
-        while [ ! -d "/app/client/dist/assets/css" ]; do
-          sleep 2
-        done
-        
-        echo "4. Da nhan duoc CSS! Nap AI va khoi dong Server..."
+        echo "3. Kiem tra file cau hinh thuc te..."
+        cat config.yaml | grep "kv_name"
+        echo "4. Nap AI va khoi dong Server..."
         exec /usr/local/bin/docker-entrypoint.sh plugnmeet-server -config /app/config.yaml
     expose:
       - "8080"
@@ -168,33 +163,17 @@ services:
       - /bin/sh
       - -c
       - |
-        echo "1. Cai dat cong cu giai nen..."
+        echo "1. Cai dat cong cu..."
         apk add --no-cache wget unzip
-        
-        echo "2. Don dep Nginx..."
         rm -rf /usr/share/nginx/html/*
-        
-        echo "3. Tai va cai dat PHONG HOP GOC (vao thu muc /room)..."
         mkdir -p /usr/share/nginx/html/room
         wget -qO /tmp/client.zip https://github.com/mynaparrot/plugNmeet-client/releases/download/v2.1.7/client.zip
         unzip -o /tmp/client.zip -d /tmp/ext
         cp -rf /tmp/ext/client/dist/* /usr/share/nginx/html/room/
-        
-        # Xóa login cũ
         rm -f /usr/share/nginx/html/room/login.html
         rm -f /usr/share/nginx/html/login.html
         
-        # Cấu hình API
-        echo 'window.PLUGNMEET_SERVER_URL="https://meet.thanhnguyen.group";' > /usr/share/nginx/html/room/config.js
-        mkdir -p /usr/share/nginx/html/room/assets/imgs
-        echo 'window.PLUGNMEET_SERVER_URL="https://meet.thanhnguyen.group";' > /usr/share/nginx/html/room/assets/config.js
-        
-        # Logo thương hiệu
-        wget -qO /usr/share/nginx/html/room/assets/imgs/main-logo-dark.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true
-        wget -qO /usr/share/nginx/html/room/assets/imgs/main-logo-light.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true
-        wget -qO /usr/share/nginx/html/room/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true
-        
-        echo "4. Tao GIAO DIEN TRANG CHU TOI GIAN..."
+        echo "2. Tao GIAO DIEN TRANG CHU MOI..."
         cat << 'EOFHTML' > /usr/share/nginx/html/index.html
         <!DOCTYPE html>
         <html lang="vi">
@@ -203,63 +182,42 @@ services:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>NextGen Meet - Thanh Nguyen Group</title>
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f19; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                body { font-family: 'Segoe UI', sans-serif; background-color: #0b0f19; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
                 .login-box { background-color: #111827; padding: 40px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid #1f2937; }
-                .logo { max-width: 180px; margin-bottom: 24px; border-radius: 8px; }
-                h2 { margin: 0 0 8px; font-weight: 600; color: #f9fafb; font-size: 24px; }
-                p.subtitle { color: #9ca3af; margin-bottom: 32px; font-size: 14px; }
+                .logo { max-width: 180px; margin-bottom: 24px; }
                 .input-group { margin-bottom: 20px; text-align: left; }
-                label { display: block; margin-bottom: 8px; font-size: 14px; color: #d1d5db; font-weight: 500; }
-                input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #374151; background-color: #1f2937; color: white; outline: none; box-sizing: border-box; font-size: 15px; transition: border-color 0.2s; }
-                input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-                button { width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #2563eb; color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); margin-top: 10px; }
-                button:hover { background-color: #1d4ed8; }
-                button:disabled { background-color: #4b5563; cursor: not-allowed; }
-                #error-msg { color: #ef4444; margin-top: 16px; font-size: 14px; display: none; background: #7f1d1d20; padding: 10px; border-radius: 6px; border: 1px solid #ef444450; }
-                .footer { margin-top: 24px; font-size: 12px; color: #6b7280; }
+                input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #374151; background-color: #1f2937; color: white; box-sizing: border-box; }
+                button { width: 100%; padding: 14px; border-radius: 8px; background-color: #2563eb; color: white; font-weight: bold; cursor: pointer; border: none; }
+                #error-msg { color: #ef4444; margin-top: 16px; display: none; }
             </style>
         </head>
         <body>
             <div class="login-box">
                 <img src="https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png" alt="Logo" class="logo">
-                <h2>Tham Gia Phòng Họp</h2>
-                <p class="subtitle">NextGen Meet by Thanh Nguyen Group</p>
-                <div class="input-group">
-                    <label>Tên hiển thị của bạn</label>
-                    <input type="text" id="userName" placeholder="Nguyễn Văn A" autocomplete="off" required>
-                </div>
-                <div class="input-group">
-                    <label>Mã phòng họp</label>
-                    <input type="text" id="roomName" value="NextGen-Room" autocomplete="off" required>
-                </div>
-                <button onclick="joinRoom()" id="joinBtn">Vào Phòng Ngay</button>
+                <h2>Vào Phòng Họp</h2>
+                <div class="input-group"><input type="text" id="userName" placeholder="Tên của bạn"></div>
+                <div class="input-group"><input type="text" id="roomName" value="NextGen-Room"></div>
+                <button onclick="joinRoom()" id="joinBtn">Kết Nối Ngay</button>
                 <div id="error-msg"></div>
-                <div class="footer">Bảo mật & Mã hóa E2EE</div>
             </div>
             <script>
                 async function joinRoom() {
                     const btn = document.getElementById('joinBtn');
                     const errorMsg = document.getElementById('error-msg');
-                    const userName = document.getElementById('userName').value.trim();
-                    const roomName = document.getElementById('roomName').value.trim();
-                    if(!userName || !roomName) {
-                        errorMsg.innerText = "Vui lòng nhập Tên và Mã phòng!";
-                        errorMsg.style.display = "block";
-                        return;
-                    }
-                    btn.innerText = "Đang kết nối...";
-                    btn.disabled = true;
-                    errorMsg.style.display = "none";
+                    const name = document.getElementById('userName').value.trim();
+                    const room = document.getElementById('roomName').value.trim();
+                    if(!name || !room) return;
+                    btn.innerText = "Đang kết nối..."; btn.disabled = true;
                     try {
-                        const response = await fetch('/auth/room/getJoinToken', {
+                        const res = await fetch('/auth/room/getJoinToken', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'API-KEY': 'TN_Admin_Key_2026', 'API-SECRET': 'TN_Secret_Key_Super_Secure_2026' },
-                            body: JSON.stringify({ room_id: roomName, user_info: { name: userName, user_id: "u_" + Math.random().toString(36).substring(7), is_admin: true } })
+                            body: JSON.stringify({ room_id: room, user_info: { name: name, user_id: "u_"+Date.now(), is_admin: true } })
                         });
-                        const data = await response.json();
-                        if(data.status) { window.location.href = "/room/?access_token=" + data.token; } 
-                        else { errorMsg.innerText = "Lỗi: " + (data.msg || "Không thể tạo phòng"); errorMsg.style.display = "block"; btn.innerText = "Vào Phòng Ngay"; btn.disabled = false; }
-                    } catch(e) { errorMsg.innerText = "Kết nối thất bại. Thử lại sau!"; errorMsg.style.display = "block"; btn.innerText = "Vào Phòng Ngay"; btn.disabled = false; }
+                        const data = await res.json();
+                        if(data.status) { window.location.href = "/room/?access_token=" + data.token; }
+                        else { errorMsg.innerText = data.msg; errorMsg.style.display = "block"; btn.innerText = "Kết Nối Ngay"; btn.disabled = false; }
+                    } catch(e) { errorMsg.innerText = "Server chưa sẵn sàng!"; errorMsg.style.display = "block"; btn.disabled = false; }
                 }
             </script>
         </body>
@@ -267,31 +225,24 @@ services:
         EOFHTML
 
         chmod -R 755 /usr/share/nginx/html
-        
-        echo "5. Cau hinh Nginx Routing..."
+        echo "3. Cau hinh Nginx Proxy..."
         cat << 'EOF' > /etc/nginx/conf.d/default.conf
         server { 
           listen 80; 
           root /usr/share/nginx/html; 
           index index.html; 
-          
           location / { try_files $$uri $$uri/ /index.html; }
-          location = /login.html { return 301 /; }
           location /room/ { try_files $$uri $$uri/ /room/index.html; }
-          
           location /auth/ {
             proxy_pass http://plugnmeet-server:8080/auth/;
             proxy_set_header Host $$host;
             proxy_set_header X-Real-IP $$remote_addr;
-            proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
           }
-          
           location /nats {
             proxy_pass http://nats:8222;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $$http_upgrade;
             proxy_set_header Connection "Upgrade";
-            proxy_set_header Host $$host;
           }
         }
         EOF
@@ -303,6 +254,6 @@ services:
 volumes:
   mariadb-data:
   frontend-dist:
-  # Tên Volume mới để xóa sạch dữ liệu cũ bị trùng lặp subjects
-  nats-data-final:
+  # VOLUME MỚI HOÀN TOÀN ĐỂ XÓA LỖI CŨ
+  nats_data_final_v4:
   plugnmeet-upload:
