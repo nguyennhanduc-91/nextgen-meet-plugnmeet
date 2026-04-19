@@ -32,6 +32,7 @@ services:
     entrypoint: >
       /bin/sh -c "
       cat << 'EOF' > /tmp/nats.conf
+      port: 4222
       websocket {
           port: 8222
           no_tls: true
@@ -82,7 +83,9 @@ services:
     # Tự tạo file config.yaml rồi mới chạy server
     entrypoint: >
       /bin/sh -c "
-      mkdir -p /app/client/dist/assets/css &&
+      echo 'Waiting for MariaDB and NATS to initialize...'
+      sleep 10
+      mkdir -p /app/client/dist/assets/css
       cat << 'EOF' > /tmp/config.yaml
       client:
         port: 8080
