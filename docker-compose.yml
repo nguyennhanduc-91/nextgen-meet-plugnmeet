@@ -17,12 +17,11 @@ services:
     command:
       - "-DVV"
       - "-config"
-      - "/pnm-nats.conf"
+      - "/my-configs/nats-server.conf" # Gọi file từ thư mục tổng
     ports:
       - "4222:4222"
     volumes:
-      # BÍ QUYẾT: Sử dụng đường dẫn tuyệt đối trên server
-      - /data/coolify/applications/rhwb9lwnu4wzz140mdo3ughg/pnm-nats.conf:/pnm-nats.conf
+      - ./:/my-configs:ro # Mount TOÀN BỘ thư mục code dưới dạng Read-Only
       - nats-data:/data/jetstream
     restart: unless-stopped
 
@@ -36,10 +35,9 @@ services:
       - mariadb
       - nats
     volumes:
-      # BÍ QUYẾT: Sử dụng đường dẫn tuyệt đối trên server
-      - /data/coolify/applications/rhwb9lwnu4wzz140mdo3ughg/pnm-config.yaml:/app/pnm-config.yaml
+      - ./:/my-configs:ro # Mount TOÀN BỘ thư mục code dưới dạng Read-Only
       - plugnmeet-upload:/app/upload
-    command: ["plugnmeet-server", "-config", "/app/pnm-config.yaml"]
+    command: ["plugnmeet-server", "-config", "/my-configs/config.yaml"] # Gọi file từ thư mục tổng
     environment:
       - LD_LIBRARY_PATH=/app/lib
     expose:
