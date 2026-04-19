@@ -28,7 +28,7 @@ services:
 
   nats:
     image: nats:2.12-alpine
-    # BÍ QUYẾT 1: Tự tạo file config ngay khi bật container
+    # Tự tạo file config ngay khi bật container
     entrypoint: >
       /bin/sh -c "
       cat << 'EOF' > /tmp/nats.conf
@@ -79,9 +79,10 @@ services:
       - nats
       setup-frontend:
         condition: service_completed_successfully
-    # BÍ QUYẾT 2: Tự tạo file config.yaml rồi mới chạy server
+    # Tự tạo file config.yaml rồi mới chạy server
     entrypoint: >
       /bin/sh -c "
+      mkdir -p /app/client/dist/assets/css &&
       cat << 'EOF' > /tmp/config.yaml
       client:
         port: 8080
@@ -172,6 +173,7 @@ services:
       - pnm-frontend:/usr/share/nginx/html
     command: >
       /bin/sh -c "
+      mkdir -p /usr/share/nginx/html/assets/imgs &&
       echo 'window.PLUGNMEET_SERVER_URL = \"https://api-meet.thanhnguyen.group\";' > /usr/share/nginx/html/config.js &&
       echo 'window.PLUGNMEET_SERVER_URL = \"https://api-meet.thanhnguyen.group\";' > /usr/share/nginx/html/assets/config.js &&
       wget -qO /usr/share/nginx/html/assets/imgs/main-logo-dark.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true &&
