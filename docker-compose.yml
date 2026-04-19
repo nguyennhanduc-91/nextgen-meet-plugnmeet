@@ -17,12 +17,12 @@ services:
     command:
       - "-DVV"
       - "-config"
-      # Gọi file cấu hình đã được copy sẵn vào trong NATS container
       - "/nats-server.conf"
     ports:
       - "4222:4222"
     volumes:
-      # Bỏ mount file config, chỉ mount data
+      # Chúng ta sẽ inject file này từ Coolify UI
+      - /nats-server.conf:/nats-server.conf
       - nats-data:/data/jetstream
     restart: unless-stopped
 
@@ -31,15 +31,13 @@ services:
     restart: unless-stopped
 
   plugnmeet-server:
-    # Build từ Dockerfile ở thư mục hiện tại thay vì dùng image trực tiếp
-    build:
-      context: .
-      dockerfile: Dockerfile.server
+    image: mynaparrot/plugnmeet-server:v2.1.6
     depends_on:
       - mariadb
       - nats
     volumes:
-      # Đã bỏ phần mount config.yaml
+      # Chúng ta sẽ inject file này từ Coolify UI
+      - /config.yaml:/app/config.yaml
       - plugnmeet-upload:/app/upload
     command: ["plugnmeet-server", "-config", "/app/config.yaml"]
     environment:
