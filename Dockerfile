@@ -1,29 +1,36 @@
-# Sử dụng base image là plugnmeet-server chuẩn của hãng
-FROM mynaparrot/plugnmeet-server:v2.1.6
+# --- Stage 1: Downloader (Dùng alpine để tải file tĩnh) ---
+FROM alpine:latest AS downloader
 
-# Cài đặt các công cụ cần thiết để tải file
-RUN apt-get update && apt-get install -y wget unzip && rm -rf /var/lib/apt/lists/*
+# Cài đặt các công cụ cần thiết
+RUN apk add --no-cache wget unzip
 
-# Tải và giải nén Frontend tĩnh vào thư mục /app/client/dist
-RUN mkdir -p /app/client/dist && \
-    wget -qO /tmp/client.zip https://github.com/mynaparrot/plugNmeet-client/releases/download/v2.1.7/plugnmeet-client.zip && \
-    unzip -o /tmp/client.zip -d /app/client/dist && \
+# Tạo thư mục và tải file frontend
+WORKDIR /client-files
+RUN wget -qO /tmp/client.zip https://github.com/mynaparrot/plugNmeet-client/releases/download/v2.1.7/plugnmeet-client.zip && \
+    unzip -o /tmp/client.zip -d /client-files && \
     rm /tmp/client.zip
 
-# Copy 2 file cấu hình từ repo của bạn vào thư mục /app
+# Sửa config.js ngay trong stage tải
+RUN echo "window.PLUGNMEET_SERVER_URL = 'https://api-meet.thanhnguyen.group';" > /client-files/config.js && \
+    mkdir -p /client-files/assets/imgs && \
+    echo "window.PLUGNMEET_SERVER_URL = 'https://api-meet.thanhnguyen.group';" > /client-files/assets/config.js
+
+# Tải Logo
+RUN wget -qO /client-files/assets/imgs/main-logo-dark.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true && \
+    wget -qO /client-files/assets/imgs/main-logo-light.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true && \
+    wget -qO /client-files/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true
+
+
+# --- Stage 2: Final Image (plugnmeet-server) ---
+FROM mynaparrot/plugnmeet-server:v2.1.6
+
+# Copy 2 file cấu hình từ root Github vào container
 COPY config.yaml /app/config.yaml
 COPY nats-server.conf /app/nats-server.conf
 
-# Cập nhật config.js cho Frontend
-RUN echo "window.PLUGNMEET_SERVER_URL = 'https://api-meet.thanhnguyen.group';" > /app/client/dist/config.js && \
-    mkdir -p /app/client/dist/assets/imgs && \
-    echo "window.PLUGNMEET_SERVER_URL = 'https://api-meet.thanhnguyen.group';" > /app/client/dist/assets/config.js
+# Copy toàn bộ file frontend tĩnh từ Stage 1 sang thư mục /app/client/dist
+COPY --from=downloader /client-files /app/client/dist
 
-# Copy logo tuỳ chỉnh
-RUN wget -qO /app/client/dist/assets/imgs/main-logo-dark.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true && \
-    wget -qO /app/client/dist/assets/imgs/main-logo-light.png 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true && \
-    wget -qO /app/client/dist/favicon.ico 'https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png' || true
-
-# Đặt thư mục làm việc và lệnh khởi động mặc định
+# Khai báo working directory và command mặc định
 WORKDIR /app
 CMD ["plugnmeet-server", "-config", "/app/config.yaml"]
