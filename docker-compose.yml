@@ -56,8 +56,6 @@ services:
       EOF
       exec nats-server -config /etc/nats/nats-server.conf
       "
-    ports:
-      - "4222:4222"
     volumes:
       - nats-data:/data/jetstream
     restart: unless-stopped
