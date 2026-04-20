@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ==========================================
-  # 1. DATABASE LƯU TRỮ
+  # 1. DATABASE (MariaDB 10.11)
   # ==========================================
   mariadb:
     image: mariadb:10.11
@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
 
   # ==========================================
-  # 2. HỆ THỐNG TRUYỀN TIN (NATS)
+  # 2. MESSAGING (NATS JetStream)
   # ==========================================
   nats:
     image: nats:2.12-alpine
@@ -30,31 +30,19 @@ services:
         websocket { port: 8222, no_tls: true }
         jetstream: { store_dir: /data/jetstream }
         accounts {
-            SYS: { exports: [ { stream: "$$SYS.ACCOUNT.PNM.>", accounts: [PNM] } ] }
             PNM: {
                 jetstream: enabled
-                imports: [ { stream: { account: SYS, subject: "$$SYS.ACCOUNT.PNM.>" } } ]
                 users: [ { nkey: UD4JADBMDSQCA5D475KSMFV43TAINASJ3TIEFQ7LP43XENPMQYFTRFKP } ]
-            }
-        }
-        system_account: SYS
-        authorization {
-            timeout: 5
-            auth_callout {
-                issuer: AD7EHM6WBIVERNVY6K7T3QEL62EB2BNMK4TTHXTUHTYSJGS3SZFZ4HX5
-                auth_users: [ UD4JADBMDSQCA5D475KSMFV43TAINASJ3TIEFQ7LP43XENPMQYFTRFKP ]
-                account: PNM
-                xkey: XAVXJLXWZR7W24SAOPN6YATDOF2B6URA4GMBKYM7SBQIFO4O6OLQKSZB
             }
         }
         EOF
         exec nats-server -config /etc/nats/nats-server.conf
     volumes:
-      - nats_final_v6:/data/jetstream
+      - nats-data-v7:/data/jetstream
     restart: unless-stopped
 
   # ==========================================
-  # 3. LÕI XỬ LÝ (PLUGNMEET SERVER v2.1.6)
+  # 3. BACKEND (PlugNmeet Server v2.1.6)
   # ==========================================
   plugnmeet-server:
     image: mynaparrot/plugnmeet-server:v2.1.6
@@ -62,37 +50,28 @@ services:
       - mariadb
       - nats
     volumes:
-      - frontend-dist:/app/client/dist
+      - frontend-assets:/app/client/dist
       - plugnmeet-upload:/app/upload
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        echo "1. Dang tao thu muc /app va file cau hinh config.yaml..."
-        mkdir -p /app
-        cd /app
-        cat << 'EOF' > config.yaml
+        echo "1. Dang tao file cau hinh config.yaml..."
+        mkdir -p /app/client/dist/assets/css
+        cat << 'EOF' > /app/config.yaml
         app_info:
           auth_header_token: "TN_Admin_Key_2026"
           secret: "TN_Secret_Key_Super_Secure_2026"
         client:
-          # ĐƯỜNG DẪN CỐ ĐỊNH ĐỂ ĐỌC CSS
           path: "/app/client/dist"
           port: 8080
-          debug: false
-        room_default_settings:
-          max_duration: 0
-          max_participants: 0
-          max_num_breakout_rooms: 6
         livekit_info:
           host: "wss://livekit.thanhnguyen.group"
           api_key: "API_nextgen_admin_key"
           secret: "SEC_thanhnguyen_group_super_secure_9999"
         redis_info:
           host: "194.233.84.253:6379"
-          username: ""
           password: "fE0RUoc9Y7vvUReP2bgoNgN7mwYMZ3fILM1vRGLo1kzwJOKOLT5V0ovdY3jY8v8c"
           dbname: 0
-          use_tls: false
         database_info:
           driver_name: "mysql"
           host: "mariadb"
@@ -107,8 +86,6 @@ services:
           nkey: "SUAGSRI6D537QEHEK7G5KAN4KINSL77FTRTAJGA2KTFRR7AIOMA43P4PRE"
           auth_callout_issuer_private: "SAAMTMBUANSRW3XDXZBIBF4JYRRUMWGV2GZT5MQ54VNWNRPN2Y4J46NQSA"
           auth_callout_xkey_private: "SXAMBYY64TKXZCLFQGWDATGPIPURA4SIV3GDCSGG7A74USK6XDO6WQTIUU"
-          num_replicas: 1
-          # FIX CẤU TRÚC PHẲNG: Không được lồng vào object nào
           room_stream_name: "pnmrooms"
           project_info_kv_name: "pnmproj"
           recorder_info_kv_name: "pnmrec"
@@ -123,35 +100,25 @@ services:
             data_channel: "dataChannel"
         upload_file_settings:
           path: "/app/upload"
-          max_size: 50
-          max_size_whiteboard_file: 30
-          keep_forever: false
-          allowed_types: ["jpg","png","jpeg","svg","pdf","docx","txt","xlsx","pptx","zip","mp4","webm","mp3"]
-        shared_notepad:
-          enabled: false
-        recorder_info:
-          recording_files_path: "/app/upload"
         EOF
         
-        echo "2. Doi MariaDB va NATS khoi tao an toan..."
-        sleep 10
-        echo "3. Khoi dong Server..."
-        # Tự động tạo thư mục CSS giả lập nếu vẫn bị lỗi đường dẫn
-        mkdir -p /app/client/dist/assets/css
+        echo "2. Cho ha tang san sang..."
+        sleep 12
+        echo "3. Khoi dong PlugNmeet Core..."
         exec /usr/local/bin/docker-entrypoint.sh plugnmeet-server -config /app/config.yaml
     expose:
       - "8080"
     restart: unless-stopped
 
   # ==========================================
-  # 4. GIAO DIỆN (NGINX CLIENT v2.1.7 + UI TỐI GIẢN)
+  # 4. FRONTEND (Nginx + Custom UI)
   # ==========================================
   plugnmeet-client:
     image: nginx:alpine
     depends_on:
       - plugnmeet-server
     volumes:
-      - frontend-dist:/usr/share/nginx/html/room
+      - frontend-assets:/usr/share/nginx/html/room
     command:
       - /bin/sh
       - -c
@@ -159,46 +126,44 @@ services:
         apk add --no-cache wget unzip
         rm -rf /usr/share/nginx/html/*
         mkdir -p /usr/share/nginx/html/room
+        
+        echo "Tai va giai nen giao dien goc..."
         wget -qO /tmp/client.zip https://github.com/mynaparrot/plugNmeet-client/releases/download/v2.1.7/client.zip
         unzip -o /tmp/client.zip -d /tmp/ext
         cp -rf /tmp/ext/client/dist/* /usr/share/nginx/html/room/
-        
-        # CẤP QUYỀN TUYỆT ĐỐI CHO VOLUME DÙNG CHUNG
         chmod -R 777 /usr/share/nginx/html/room
         
-        echo "Tao giao dien trang chu..."
+        echo "Tao giao dien dang nhap toi gian mang thuong hieu Thanh Nguyen Group..."
         cat << 'EOFHTML' > /usr/share/nginx/html/index.html
         <!DOCTYPE html>
         <html lang="vi">
         <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>NextGen Meet - Thanh Nguyen Group</title>
+            <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>NextGen Meet</title>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; background-color: #0b0f19; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-                .login-box { background-color: #111827; padding: 40px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #1f2937; }
-                input { width: 100%; padding: 14px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #374151; background-color: #1f2937; color: white; box-sizing: border-box; outline: none; }
-                button { width: 100%; padding: 14px; border-radius: 8px; background-color: #2563eb; color: white; font-weight: bold; cursor: pointer; border: none; }
-                #error-msg { color: #ef4444; margin-top: 16px; display: none; }
+                body { font-family: 'Segoe UI', sans-serif; background: #0b0f19; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                .card { background: #111827; padding: 40px; border-radius: 20px; width: 350px; border: 1px solid #1f2937; text-align: center; }
+                input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: white; box-sizing: border-box; outline: none; }
+                button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+                button:hover { background: #1d4ed8; }
             </style>
         </head>
         <body>
-            <div class="login-box">
-                <img src="https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png" alt="Logo" style="max-width:180px; margin-bottom:24px;">
-                <h2>Vào Phòng Họp</h2>
-                <input type="text" id="userName" placeholder="Tên của bạn">
-                <input type="text" id="roomName" value="NextGen-Room">
-                <button onclick="joinRoom()" id="joinBtn">Kết Nối Ngay</button>
-                <div id="error-msg"></div>
+            <div class="card">
+                <img src="https://raw.githubusercontent.com/nguyennhanduc-91/nextgen-meet-frontend/main/ivekit-meet-open-graph.png" style="max-width:150px;margin-bottom:20px;">
+                <h2 style="margin-bottom:25px;">NextGen Meet</h2>
+                <input type="text" id="name" placeholder="Tên của bạn">
+                <input type="text" id="room" value="NextGen-Room">
+                <button onclick="go()">VÀO PHÒNG HỌP</button>
+                <p id="msg" style="color:#ef4444; font-size:13px; margin-top:15px; display:none;"></p>
             </div>
             <script>
-                async function joinRoom() {
-                    const btn = document.getElementById('joinBtn');
-                    const errorMsg = document.getElementById('error-msg');
-                    const name = document.getElementById('userName').value.trim();
-                    const room = document.getElementById('roomName').value.trim();
-                    if(!name || !room) return;
-                    btn.innerText = "Đang kết nối..."; btn.disabled = true;
+                async function go() {
+                    const elMsg = document.getElementById('msg');
+                    const name = document.getElementById('name').value;
+                    const room = document.getElementById('room').value;
+                    if(!name) return;
+                    elMsg.style.display = 'none';
                     try {
                         const res = await fetch('/auth/room/getJoinToken', {
                             method: 'POST',
@@ -206,28 +171,31 @@ services:
                             body: JSON.stringify({ room_id: room, user_info: { name: name, user_id: "u_"+Date.now(), is_admin: true } })
                         });
                         const data = await res.json();
-                        if(data.status) { window.location.href = "/room/?access_token=" + data.token; }
-                        else { errorMsg.innerText = data.msg; errorMsg.style.display = "block"; btn.innerText = "Kết Nối Ngay"; btn.disabled = false; }
-                    } catch(e) { errorMsg.innerText = "Server chưa sẵn sàng!"; errorMsg.style.display = "block"; btn.disabled = false; }
+                        if(data.status) window.location.href = "/room/?access_token=" + data.token;
+                        else { elMsg.innerText = data.msg; elMsg.style.display = 'block'; }
+                    } catch(e) { elMsg.innerText = "Lỗi kết nối Server!"; elMsg.style.display = 'block'; }
                 }
             </script>
         </body>
         </html>
         EOFHTML
-        
-        chmod 755 /usr/share/nginx/html/index.html
 
+        echo "Cau hinh Nginx Proxy..."
         cat << 'EOF' > /etc/nginx/conf.d/default.conf
         server { 
-          listen 80; 
-          root /usr/share/nginx/html; 
-          index index.html; 
-          location / { try_files $$uri $$uri/ /index.html; }
-          location /room/ { try_files $$uri $$uri/ /room/index.html; }
+          listen 80; root /usr/share/nginx/html; index index.html;
+          location / { try_files $uri $uri/ /index.html; }
+          location /room/ { try_files $uri $uri/ /room/index.html; }
           location /auth/ {
             proxy_pass http://plugnmeet-server:8080/auth/;
-            proxy_set_header Host $$host;
-            proxy_set_header X-Real-IP $$remote_addr;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+          }
+          location /nats {
+            proxy_pass http://nats:8222;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
           }
         }
         EOF
@@ -238,7 +206,7 @@ services:
 
 volumes:
   mariadb-data:
-  frontend-dist:
-  # VOLUME MỚI HOÀN TOÀN ĐỂ XÓA RÁC CŨ
-  nats_final_v6:
+  # Volume chia sẻ asset để Server không bị lỗi failed to read css
+  frontend-assets:
+  nats-data-v7:
   plugnmeet-upload:
