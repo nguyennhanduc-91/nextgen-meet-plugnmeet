@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  # 1. Server NATS - "Trái tim" điều phối dữ liệu của plugNmeet
+  # 1. Server NATS
   nats-server:
     image: nats:2.10-alpine
     container_name: nats-server
-    command: "-js -p 4222 -m 8222" # Bật JetStream và cổng quản lý
+    command: "-js -p 4222 -m 8222"
     networks:
       - coolify
 
@@ -21,15 +21,15 @@ services:
     networks:
       - coolify
 
-  # 3. Backend API của plugNmeet
+  # 3. Backend API
   plugnmeet-server:
-    image: mynaparrot/plugnmeet-server:latest
+    # Ở đây chúng ta yêu cầu Coolify build từ Dockerfile trên Github thay vì kéo image thuần
+    build: 
+      context: https://github.com/nguyennhanduc-91/nextgen-meet-plugnmeet-server.git#main
     container_name: plugnmeet-server
     depends_on:
       - nats-server
       - plugnmeet-db
-    volumes:
-      - ./config.yaml:/app/config.yaml
     networks:
       - coolify
 
