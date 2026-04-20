@@ -1,22 +1,41 @@
 version: '3.8'
-services:
-  plugnmeet-db:
-    image: mariadb:10.11
-    environment:
-      MYSQL_ROOT_PASSWORD: your_root_password
-      MYSQL_DATABASE: plugnmeet
-    volumes:
-      - plugnmeet_db_data:/var/lib/mysql
 
+services:
+  # 1. Server NATS - "Trái tim" điều phối dữ liệu của plugNmeet
   nats-server:
     image: nats:2.10-alpine
-    command: "-c /etc/nats/nats.conf"
-    # Bạn có thể dùng file nats_server_sample.conf của hãng làm mẫu
+    container_name: nats-server
+    command: "-js -p 4222 -m 8222" # Bật JetStream và cổng quản lý
+    networks:
+      - coolify
 
-  plugnmeet-server:
-    build: .
-    depends_on:
-      - plugnmeet-db
-      - nats-server
+  # 2. Cơ sở dữ liệu MariaDB
+  plugnmeet-db:
+    image: mariadb:10.11
+    container_name: plugnmeet-db
     environment:
-      - PLUGNMEET_CONFIG_PATH=/app/config.yaml
+      MYSQL_ROOT_PASSWORD: "thanhnguyen_db_password"
+      MYSQL_DATABASE: "plugnmeet"
+    volumes:
+      - plugnmeet_db_data:/var/lib/mysql
+    networks:
+      - coolify
+
+  # 3. Backend API của plugNmeet
+  plugnmeet-server:
+    image: mynaparrot/plugnmeet-server:latest
+    container_name: plugnmeet-server
+    depends_on:
+      - nats-server
+      - plugnmeet-db
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  plugnmeet_db_data:
