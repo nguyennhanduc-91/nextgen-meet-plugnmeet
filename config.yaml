@@ -8,6 +8,9 @@ client:
   cors_allowed_origins:
     - "https://room.thanhnguyen.group"
     - "http://localhost:3000"
+    - "http://localhost:3001"
+    - "http://localhost:3002"
+    - "http://localhost:3003"
   webhook_conf:
     enable: false
   copyright_conf:
