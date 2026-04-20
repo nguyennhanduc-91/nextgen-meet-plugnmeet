@@ -20,9 +20,11 @@ livekit_info:
   api_key: "API_nextgen_admin_key"
   secret: "SEC_thanhnguyen_group_super_secure_9999"
 
-# KẾT NỐI REDIS (Dùng port 6380 như trong livekit.yaml của bạn)
+# KẾT NỐI REDIS (Đã đồng bộ tuyệt đối với LiveKit Server)
 redis_info:
-  host: "host.docker.internal:6380"
+  host: "194.233.84.253:6379"
+  username: ""
+  password: "fE0RUoc9Y7vvUReP2bgoNgN7mwYMZ3fILM1vRGLo1kzwJOKOLT5V0ovdY3jY8v8c"
   db: 0
 
 # KẾT NỐI DATABASE (Sẽ chạy cùng cụm Docker)
