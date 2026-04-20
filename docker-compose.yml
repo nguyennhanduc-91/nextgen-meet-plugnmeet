@@ -1,11 +1,14 @@
 version: '3.8'
 
 services:
-  # 1. Server NATS
   nats-server:
     image: nats:2.10-alpine
     container_name: nats-server
-    command: "-js -p 4222 -m 8222"
+    # THAY ĐỔI LỆNH CHẠY: Yêu cầu NATS nạp file cấu hình
+    command: "-c /etc/nats/nats-server.conf"
+    volumes:
+      # MOUNT FILE: Ánh xạ file từ GitHub vào trong Container
+      - ./nats_server_sample.conf:/etc/nats/nats-server.conf
     networks:
       - coolify
 
