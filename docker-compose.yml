@@ -80,3 +80,4 @@ networks:
 
 volumes:
   plugnmeet_db_data:
+  plugnmeet_etherpad_data:
