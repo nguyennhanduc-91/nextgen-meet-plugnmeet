@@ -95,7 +95,12 @@ recorder_info:
   del_recording_backup_duration: 72h
 
 shared_notepad:
-  enabled: false
+  enabled: true
+  etherpad_hosts:
+    - id: "node_01"
+      host: "http://etherpad:9001"
+      client_id: "plugNmeet"
+      client_secret: "thanhnguyen_etherpad_key_2026"
 
 analytics_settings:
   enabled: true
@@ -108,4 +113,22 @@ artifacts_settings:
   del_artifacts_backup_duration: 72h
 
 insights:
-  enabled: false
+  enabled: true
+  providers:
+    openai:
+      - id: "nvidia_deepseek"
+        credentials:
+          api_key: "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" 
+          base_url: "https://integrate.api.nvidia.com/v1" 
+
+  services:
+    ai_text_chat:
+      provider: "openai"
+      id: "nvidia_deepseek"
+      model: "deepseek-ai/deepseek-v4-pro" # Đổi sang DeepSeek
+      max_tokens: 16384
+    meeting_summarizing:
+      provider: "openai"
+      id: "nvidia_deepseek"
+      model: "deepseek-ai/deepseek-v4-pro" # Đổi sang DeepSeek
+      max_tokens: 16384
