@@ -1,0 +1,5 @@
+FROM etherpad/etherpad:latest
+# Tự động chèn API Key cố định vào file
+RUN echo "thanhnguyen_etherpad_key_2026" > /opt/etherpad-lite/APIKEY.txt
+# Chuyển quyền sở hữu cho user etherpad
+RUN chown etherpad:etherpad /opt/etherpad-lite/APIKEY.txt
