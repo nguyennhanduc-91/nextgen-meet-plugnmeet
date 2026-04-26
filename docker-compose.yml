@@ -65,6 +65,7 @@ services:
     depends_on:
       - nats-server
       - plugnmeet-db
+      - etherpad
     # Mở cổng nội bộ 8080
     expose:
       - "8080"
