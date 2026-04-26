@@ -28,16 +28,16 @@ services:
       MYSQL_DATABASE: "plugnmeet"
     volumes:
       - plugnmeet_db_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - coolify
- # ──────────────────────────────────────────────
-  # 4. Etherpad (Shared Notepad / Ghi chú chung)
-  # ──────────────────────────────────────────────
+ # Etherpad (Shared Notepad)
   etherpad:
-    image: etherpad/etherpad:latest
+    build: 
+      context: https://github.com/nguyennhanduc-91/nextgen-meet-plugnmeet-server.git#main
+      dockerfile: Dockerfile.etherpad
     container_name: plugnmeet-etherpad
     environment:
-      # ── Database (dùng chung MariaDB) ──
       DB_TYPE: "mysql"
       DB_HOST: "plugnmeet-db"
       DB_PORT: "3306"
@@ -45,12 +45,9 @@ services:
       DB_USER: "root"
       DB_PASS: "thanhnguyen_db_password"
       DB_CHARSET: "utf8mb4"
-      # ── Bảo mật ──
       ADMIN_PASSWORD: "thanhnguyen_etherpad_admin"
-      # ── Cấu hình cơ bản ──
       DEFAULT_PAD_TEXT: ""
       DISABLE_IP_LOGGING: "true"
-      SOFFICE: null
     depends_on:
       - plugnmeet-db
     expose:
