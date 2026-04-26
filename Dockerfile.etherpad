@@ -1,5 +1,8 @@
 FROM etherpad/etherpad:latest
-# Tự động chèn API Key cố định vào file
+
+# 1. Chèn quyền client_credentials cho OIDC để plugNmeet có thể gọi API tạo phòng Notepad
+RUN sed -i 's/"grant_types": \["authorization_code"\]/"grant_types": ["authorization_code", "client_credentials"]/g' /opt/etherpad-lite/settings.json.template
+
+# 2. Tự động chèn API Key tĩnh
 RUN echo "thanhnguyen_etherpad_key_2026" > /opt/etherpad-lite/APIKEY.txt
-# Chuyển quyền sở hữu cho user etherpad
 RUN chown etherpad:etherpad /opt/etherpad-lite/APIKEY.txt
