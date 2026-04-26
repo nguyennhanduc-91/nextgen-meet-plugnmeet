@@ -19,7 +19,9 @@ services:
 
   # 2. Cơ sở dữ liệu MariaDB
   plugnmeet-db:
-    image: mariadb:10.11
+    build:
+      context: https://github.com/nguyennhanduc-91/nextgen-meet-plugnmeet-server.git#main
+      dockerfile: Dockerfile.mariadb
     container_name: plugnmeet-db
     environment:
       MYSQL_ROOT_PASSWORD: "thanhnguyen_db_password"
