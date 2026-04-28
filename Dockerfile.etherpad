@@ -7,8 +7,9 @@ USER root
 # 1. Cài đặt 'nano' và 'sed' bằng lệnh 'apk' của Alpine Linux
 RUN apk add --no-cache nano sed
 
-# 2. VÁ LỖI CẤU TRÚC OIDC BẰNG LỆNH SED TỰ ĐỘNG (FIX LỖI 400 INVALID_REQUEST)
-RUN sed -i 's/"grant_types": \["authorization_code"\]/"grant_types": \["authorization_code", "client_credentials"\]/g' /opt/etherpad-lite/settings.json
+# 2. VÁ LỖI CẤU TRÚC OIDC BẰNG LỆNH SED TỰ ĐỘNG (FIX LỖI 400 VÀ LỖI 401)
+RUN sed -i 's/"grant_types": \["authorization_code"\]/"grant_types": ["authorization_code", "client_credentials"], "extraParams": [{"name": "admin", "value": true}]/g' /opt/etherpad-lite/settings.json && \
+    sed -i 's/"response_types": \["code"\]/"response_types": ["code", "token"]/g' /opt/etherpad-lite/settings.json
 
 # 3. Trả lại quyền thực thi cho user etherpad
 USER etherpad
