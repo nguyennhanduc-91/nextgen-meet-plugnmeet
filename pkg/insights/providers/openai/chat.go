@@ -27,14 +27,42 @@ func newChatStream(ctx context.Context, p *OpenAIProvider, model string, history
 		})
 	}
 
-	for _, h := range history {
+	// Resolve defaults from options
+	enableThinking := false
+	if val, ok := p.options["enable_thinking"].(bool); ok && val {
+		enableThinking = true
+	}
+
+	hideReasoning := false
+	if val, ok := p.options["hide_reasoning"].(bool); ok && val {
+		hideReasoning = true
+	} else if strVal, ok := p.options["hide_reasoning"].(string); ok && (strVal == "true" || strVal == "1") {
+		hideReasoning = true
+	}
+
+	for i, h := range history {
 		role := "user"
 		if string(h.Role) == "model" {
 			role = "assistant"
 		}
+		
+		text := h.Text
+		// Intercept the dynamic reasoning flag from the UI
+		if i == len(history)-1 && role == "user" {
+			if strings.HasPrefix(text, "[R-] ") {
+				enableThinking = false
+				hideReasoning = true
+				text = strings.TrimPrefix(text, "[R-] ")
+			} else if strings.HasPrefix(text, "[R+] ") {
+				enableThinking = true
+				hideReasoning = false
+				text = strings.TrimPrefix(text, "[R+] ")
+			}
+		}
+
 		messages = append(messages, Message{
 			Role:    role,
-			Content: h.Text,
+			Content: text,
 		})
 	}
 
@@ -53,10 +81,10 @@ func newChatStream(ctx context.Context, p *OpenAIProvider, model string, history
 	if val, ok := p.options["top_p"].(float64); ok {
 		reqBody.TopP = float32(val)
 	}
-	if val, ok := p.options["reasoning_budget"].(float64); ok {
+	if val, ok := p.options["reasoning_budget"].(float64); ok && enableThinking {
 		reqBody.ReasoningBudget = uint32(val)
 	}
-	if val, ok := p.options["enable_thinking"].(bool); ok && val {
+	if enableThinking {
 		reqBody.ChatTemplateKwargs = &TemplateKwargs{EnableThinking: true}
 	}
 
@@ -92,13 +120,7 @@ func newChatStream(ctx context.Context, p *OpenAIProvider, model string, history
 
 		var hasStartedReasoning bool
 		var hasStartedContent bool
-		
-		hideReasoning := false
-		if val, ok := p.options["hide_reasoning"].(bool); ok && val {
-			hideReasoning = true
-		} else if strVal, ok := p.options["hide_reasoning"].(string); ok && (strVal == "true" || strVal == "1") {
-			hideReasoning = true
-		}
+
 
 		for {
 			line, err := reader.ReadBytes('\n')
