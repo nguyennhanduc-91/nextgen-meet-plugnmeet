@@ -120,16 +120,22 @@ insights:
       - id: "nvidia_deepseek"
         credentials:
           api_key: "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" 
+        options:
+          # Bắt buộc phải cho base_url vào trong thẻ options
           base_url: "https://integrate.api.nvidia.com/v1" 
 
   services:
     ai_text_chat:
       provider: "openai"
       id: "nvidia_deepseek"
-      model: "deepseek-ai/deepseek-v4-pro" # Đổi sang DeepSeek
-      max_tokens: 16384
+      options:
+        # Tên chuẩn phải là chat_model và nằm trong options
+        chat_model: "deepseek-ai/deepseek-v4-pro"
+        max_tokens: 16384
     meeting_summarizing:
       provider: "openai"
       id: "nvidia_deepseek"
-      model: "deepseek-ai/deepseek-v4-pro" # Đổi sang DeepSeek
-      max_tokens: 16384
+      options:
+        # Tên chuẩn phải là summarize_model và nằm trong options
+        summarize_model: "deepseek-ai/deepseek-v4-pro"
+        max_tokens: 16384
