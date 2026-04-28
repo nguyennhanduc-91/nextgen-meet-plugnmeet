@@ -21,7 +21,7 @@ func newChatStream(ctx context.Context, p *OpenAIProvider, model string, history
 	var messages []Message
 	for _, h := range history {
 		role := "user"
-		if h.Role == "model" {
+		if string(h.Role) == "model" {
 			role = "assistant"
 		}
 		messages = append(messages, Message{

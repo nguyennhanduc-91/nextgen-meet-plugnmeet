@@ -25,8 +25,8 @@ func NewProvider(providerAccount *config.ProviderAccount, serviceConfig *config.
 	}
 
 	baseURL := "https://api.openai.com/v1"
-	if providerAccount.Credentials.BaseURL != "" {
-		baseURL = providerAccount.Credentials.BaseURL
+	if urlVal, ok := providerAccount.Options["base_url"].(string); ok && urlVal != "" {
+		baseURL = urlVal
 	}
 
 	return &OpenAIProvider{
@@ -59,4 +59,16 @@ func (p *OpenAIProvider) SynthesizeText(ctx context.Context, options []byte) (io
 
 func (p *OpenAIProvider) GetSupportedLanguages(serviceType insights.ServiceType) []*plugnmeet.InsightsSupportedLangInfo {
 	return nil
+}
+
+func (p *OpenAIProvider) StartBatchSummarizeAudioFile(ctx context.Context, filePath, summarizeModel, userPrompt string) (jobId string, fileName string, err error) {
+	return "", "", fmt.Errorf("StartBatchSummarizeAudioFile is not implemented for the openai provider")
+}
+
+func (p *OpenAIProvider) CheckBatchJobStatus(ctx context.Context, jobId string) (*insights.BatchJobResponse, error) {
+	return nil, fmt.Errorf("CheckBatchJobStatus is not implemented for the openai provider")
+}
+
+func (p *OpenAIProvider) DeleteUploadedFile(ctx context.Context, fileName string) error {
+	return fmt.Errorf("DeleteUploadedFile is not implemented for the openai provider")
 }
