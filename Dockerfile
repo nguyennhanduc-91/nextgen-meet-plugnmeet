@@ -35,31 +35,19 @@ RUN TARGETARCH=$(dpkg --print-architecture) && \
     CGO_LDFLAGS="-L$SPEECHSDK_ROOT/lib/${SPEECHSDK_ARCH_DIR} -lMicrosoft.CognitiveServices.Speech.core" \
     go build -trimpath -ldflags '-w -s -buildid=' -a -o plugnmeet-server main.go
 
-# Stage 2: Create the final image
-FROM debian:stable-slim
+# Stage 2: Create the final image using the official pre-built image as a base
+FROM mynaparrot/plugnmeet-server:latest
 
-RUN export DEBIAN_FRONTEND=noninteractive; \
-    apt update && \
-    apt install --no-install-recommends -y wget ca-certificates libreoffice mupdf-tools \
-    libasound2 libssl3 libopus0 libsoxr0 libopusfile0 && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy the compiled application
+# Copy the custom compiled binary from builder, replacing the original one
 COPY --from=builder /build/plugnmeet-server /usr/bin/plugnmeet-server
 
-# Copy the Speech SDK libraries from the builder stage
-COPY --from=builder /opt/speechsdk /opt/speechsdk
-
-# Copy the entrypoint script
-COPY --from=builder /build/docker-build/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Ensure the binary has execute permissions
+RUN chmod +x /usr/bin/plugnmeet-server
 
 # Copy configuration
 WORKDIR /app
 COPY config.yaml .
 
-EXPOSE 3000
-
+# Use the same entrypoint but start with our config
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["plugnmeet-server", "-config", "config.yaml"]
