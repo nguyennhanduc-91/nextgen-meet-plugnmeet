@@ -96,6 +96,8 @@ func newChatStream(ctx context.Context, p *OpenAIProvider, model string, history
 		hideReasoning := false
 		if val, ok := p.options["hide_reasoning"].(bool); ok && val {
 			hideReasoning = true
+		} else if strVal, ok := p.options["hide_reasoning"].(string); ok && (strVal == "true" || strVal == "1") {
+			hideReasoning = true
 		}
 
 		for {
