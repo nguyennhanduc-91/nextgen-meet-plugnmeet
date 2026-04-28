@@ -47,8 +47,8 @@ services:
       ADMIN_PASSWORD: "thanhnguyen_etherpad_admin"
       DEFAULT_PAD_TEXT: ""
       DISABLE_IP_LOGGING: "true"
-      USER_CLIENT: "plugNmeet"
-      USER_SECRET: "thanhnguyen_etherpad_key_2026"
+      ADMIN_CLIENT: "plugNmeet"
+      ADMIN_SECRET: "thanhnguyen_etherpad_key_2026"
     depends_on:
       - plugnmeet-db
     expose:
