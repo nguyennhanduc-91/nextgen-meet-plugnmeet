@@ -128,7 +128,7 @@ insights:
       provider: "openai"
       id: "nvidia_deepseek"
       options:
-        chat_model: "nvidia/nemotron-3-super-120b-a12b"
+        chat_model: "openai/gpt-oss-120b"
         max_tokens: 16384
         temperature: 0.3
         top_p: 0.85
@@ -169,7 +169,7 @@ insights:
       provider: "openai"
       id: "nvidia_deepseek"
       options:
-        summarize_model: "nvidia/nemotron-3-super-120b-a12b"
+        summarize_model: "openai/gpt-oss-120b"
         max_tokens: 16384
         temperature: 0.3
         hide_reasoning: true
