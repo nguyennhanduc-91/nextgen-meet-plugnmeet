@@ -6,7 +6,7 @@ client:
   secret: "thanhnguyen_secret_key_super_safe_2026"
   token_validity: 10m
   cors_allowed_origins:
-    - "https://room.thanhnguyen.group"
+    - "https://meet.thanhnguyen.group"
     - "http://localhost:3000"
     - "http://localhost:3001"
     - "http://localhost:3002"
